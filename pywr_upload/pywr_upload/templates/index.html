@@ -26,7 +26,93 @@
     body {
       font-size: 0.8rem;
     }
+    #result-container {
+      width="800px";
+    }
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.25s ease-in;
+}
+#non-dialog {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: grayscale(0.7) blur(2px);
+  z-index: -1;
+}
+
+.modal.is-visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.modal-dialog {
+  position: relative;
+  max-width: 800px;
+  max-height: 80vh;
+  border-radius: 5px;
+  border: grey;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 5px 5px 3px #E0E0E0;
+  padding: 16px;
+  background: #FFFFFF;
+  overflow: auto;
+}
+#tabs {
+  display: inline-flex;
+}
+.tab[active="1"] {
+  background-color: #7F9CCB;
+  color: #000000;
+}
+
+.tab {
+  background-color: #CDCDCD;
+  color: #8A8A8A;
+  padding: 5px 10px;
+  border: 1px ridge black;
+  border-bottom: 0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  height: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.panel[active="1"] {
+  display: block;
+  border: 1px solid black;
+}
+
+.panel {
+  display: none;
+  padding: 16px;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  box-shadow: 5px 5px #E0E0E0;
+  width: 360px;
+}
   </style>
+  <div class="modal">
+  <div id="non-dialog">
+    <pre>Some text</pre>
+  </div>
+  <div class="modal-dialog">
   <div class="file-container">
     <label for="file-input">Select file:</label>
     <span id="filename">No file selected</span>
@@ -36,9 +122,14 @@
     <div class="status-line" id="progress-container">
     </div>
   </div>
+    <div id="result-container">
+  </div>
+  </div>
+  </div>
 </body>
 <script type="module">
 import {ProgressCircle} from "{{ url_for('pywr_upload.static', filename='js/ProgressCircle.js') }}";
+import {ParseResult} from "{{ url_for('pywr_upload.static', filename='js/ParseResult.js') }}";
 const parserEP = "http://127.0.0.1:5000/parse";
 //const parserEP = "https://httpbin.org/post";
 const finp = document.getElementById("file-input");
@@ -73,6 +164,10 @@ function parserPost(input){
         console.log(xhr.status);
         console.log(xhr.response);
         const progress = addStatusLine("status-container", "Doing thing...")
+        const filename = finp.files[0].name;
+        const filesize = finp.files[0].size;
+        const result = JSON.parse(xhr.response);
+        const parse = new ParseResult("result-container", filename, filesize, result);
     });
     xhr.upload.addEventListener("progress", function(e){
         const percent = e.loaded/e.total*100.0;
@@ -115,5 +210,12 @@ function addStatusLine(container, text){
 
     return progress;
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.querySelector(".modal");
+    modal.classList.add("is-visible");
+    console.log("set visible");
+});
+
 </script>
 </html>
