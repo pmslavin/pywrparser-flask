@@ -9,7 +9,7 @@ const svgNS = "http://www.w3.org/2000/svg"
 class ProgressCircle{
     static get default_config(){
         return {
-            size: 28,
+            size: 24,
             bgStroke: "#E0E0E0",
             normalStroke: "#43DB00",
             errorStroke: "#43DB00",
@@ -74,6 +74,10 @@ class ProgressCircle{
 
         this.circle.style.strokeDashoffset = this.circum*(1.0-percent/100.0);
         this.percent = percent;
+    }
+
+    get isComplete(){
+        return this.percent == 100;
     }
 }
 

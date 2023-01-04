@@ -62,6 +62,7 @@
 .modal-dialog {
   position: relative;
   max-width: 800px;
+  height: 60vh;
   max-height: 80vh;
   border-radius: 5px;
   border: grey;
@@ -105,7 +106,26 @@
   border-bottom-right-radius: 5px;
   border-bottom-left-radius: 5px;
   box-shadow: 5px 5px #E0E0E0;
-  width: 360px;
+}
+ul{
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.panel-header{
+  font-variant: all-small-caps;
+  background-color: #7F9CCB;
+}
+.rule-name{
+  margin: 0px 12px;
+}
+li:nth-child(odd){
+  background-color: wheat;
+  padding: 1px 1px;
+}
+li:nth-child(even){
+  background-color: antiquewhite;
+  padding: 1px 1px;
 }
   </style>
   <div class="modal">
@@ -140,10 +160,26 @@ finp.addEventListener("change", loadFile);
 
 function loadFile(e){
     const reader = new FileReader();
-    reader.addEventListener("load", processFile);
+    const progress = addStatusLine("status-container", "Reading Pywr file...")
     const fp = finp.files[0];
     fname.innerText = fp.name;
     console.log(fp);
+    //reader.addEventListener("load", processFile);
+    reader.addEventListener("load", function(e){
+        progress.container.parentElement.querySelector("span.text").textContent = `${fp.name} (${fp.size} bytes)`;
+        try{
+            const input = JSON.parse(e.target.result);
+            console.log("input", input);
+            parserPost(input);
+        }catch(e){
+            console.error(e);
+        }
+    });
+    reader.addEventListener("progress", function(e){
+        const percent = e.loaded/e.total*100.0;
+        console.log(`Progress: ${percent.toFixed(2)}`);
+        progress.setPercent(percent);
+    });
     reader.readAsText(fp);
 }
 
@@ -158,12 +194,11 @@ function processFile(e){
 }
 
 function parserPost(input){
-    const progress = addStatusLine("status-container", "Validating Pywr file...")
+    const progress = addStatusLine("status-container", "Validating Pywr network...")
     const xhr = new XMLHttpRequest();
     xhr.addEventListener("load", function(){
         console.log(xhr.status);
         console.log(xhr.response);
-        const progress = addStatusLine("status-container", "Doing thing...")
         const filename = finp.files[0].name;
         const filesize = finp.files[0].size;
         const result = JSON.parse(xhr.response);
@@ -201,6 +236,8 @@ function addStatusLine(container, text){
     progSpan.style.verticalAlign = "middle";
     const progress = new ProgressCircle(progSpan);
     const textSpan = document.createElement("span");
+    textSpan.classList.add(`status-line-${lineCount+1}-text`);
+    textSpan.classList.add("text");
     textSpan.innerText = text;
     textSpan.style.padding = "8px";
 
