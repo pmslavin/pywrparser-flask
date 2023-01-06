@@ -24,27 +24,12 @@ class ParseResult{
         summary.setAttribute("id", "parse-summary");
         const fileInfo = document.createElement("div");
         fileInfo.setAttribute("id", "parse-file-info");
-        fileInfo.textContent = `${this.filename} (${this.filesize} bytes)`;
-        const parseStatus = document.createElement("div");
-        parseStatus.setAttribute("id", "parse-file-status");
-        const validState = result.parse_results.errors == 0 ? "Valid" : "Invalid";
-        const errorPlural = result.parse_results.errors == 1 ? "" : "s";
-        const warnPlural = result.parse_results.warnings == 1 ? "" : "s";
-        parseStatus.innerText = `${validState}: ${result.parse_results.errors} error`
-                               +`${errorPlural}, ${result.parse_results.warnings} warning`
-                               +`${warnPlural}`;
-
         summary.append(fileInfo);
-        summary.append(parseStatus);
         header.append(summary);
         this.header = header
         this.container.append(header);
 
         this.makeComponentTabs(result);
-
-        //if(result.parse_results.errors > 0){
-        //    this.makeComponents(result);
-        //}
     }
 
     makeComponents(result){
@@ -171,80 +156,72 @@ class ParseResult{
         const errors = result.errors[component];
         const warnings = result.warnings[component];
         if(errors){
-            const errorHeader = document.createElement("div");
-            errorHeader.classList.add("panel-header");
-            errorHeader.classList.add("panel-error-header");
-            const errorOpenState = document.createElement("span");
-            errorOpenState.innerHTML = "&#x2796";
-            errorOpenState.style.margin = "0px 4px";
-            errorOpenState.classList.add("open");
-            errorHeader.append(errorOpenState);
-            const errorHeaderText = document.createElement("span");
-            const plural = errors.length == 1 ? "" : "s";
-            errorHeaderText.textContent = `${errors.length} error${plural}`;
-            errorHeader.append(errorHeaderText);
-
-            const errList = document.createElement("ul");
-            errList.style = "background-color: none";
-            for(const error of errors){
-                const errLine = document.createElement("li");
-                const ruleDiv = document.createElement("div");
-                const ruleName = document.createElement("span");
-                const ruleText = document.createElement("span");
-                //const excerpt = document.createElement("div");
-                //excerpt.textContent = error.value;
-
-                ruleName.textContent = error.rule;
-                ruleName.classList.add("rule-name");
-                ruleText.textContent = error.exception;
-                ruleText.classList.add("rule-text");
-                ruleDiv.append(ruleName);
-                ruleDiv.append(ruleText);
-                //ruleDiv.append(excerpt);
-                errLine.append(ruleDiv);
-                errList.append(errLine);
-            }
-            errorHeader.append(errList);
-            panel.append(errorHeader);
+            panel.append(this.makeRuleTable(errors, "error"));
         }
         if(warnings){
-            const warningHeader = document.createElement("div");
-            warningHeader.classList.add("panel-header");
-            warningHeader.classList.add("panel-warning-header");
-            const warningOpenState = document.createElement("span");
-            warningOpenState.innerHTML = "&#x2796";
-            warningOpenState.style.margin = "0px 4px";
-            warningOpenState.classList.add("open");
-            warningHeader.append(warningOpenState);
-            const warningHeaderText = document.createElement("span");
-            const plural = warnings.length == 1 ? "" : "s";
-            warningHeaderText.textContent = `${warnings.length} warning${plural}`;
-            warningHeader.append(warningHeaderText);
-
-            const warnList = document.createElement("ul");
-            for(const warning of warnings){
-                const warnLine = document.createElement("li");
-                const ruleDiv = document.createElement("div");
-                const ruleName = document.createElement("span");
-                const ruleText = document.createElement("span");
-                //const excerpt = document.createElement("div");
-                //excerpt.textContent = error.value;
-
-                ruleName.textContent = warning.rule;
-                ruleName.classList.add("rule-name");
-                ruleText.textContent = warning.exception;
-                ruleText.classList.add("rule-text");
-                ruleDiv.append(ruleName);
-                ruleDiv.append(ruleText);
-                //ruleDiv.append(excerpt);
-                warnLine.append(ruleDiv);
-                warnList.append(warnLine);
-            }
-            warningHeader.append(warnList);
-            panel.append(warningHeader);
+            panel.append(this.makeRuleTable(warnings, "warning"));
         }
-
         return panel;
+    }
+
+    makeRuleTable(rules, category){
+        const table = document.createElement("table");
+        table.classList.add(`${category}-rule-table`);
+        const tHead = document.createElement("thead");
+        const thRow = document.createElement("tr");
+        const tBody = document.createElement("tbody");
+        thRow.classList.add("rule-header-row");
+        const openState = document.createElement("th");
+        openState.innerHTML = "&#x2796"; // heavy minus
+        openState.classList.add("open-state", "open");
+        openState.addEventListener("click", this.showHideRules.bind(this));
+        const ruleHeaderText = document.createElement("th");
+        ruleHeaderText.classList.add("rule-header-text");
+        const plural = rules.length === 1 ? "" : "s";
+        ruleHeaderText.textContent = `${rules.length} ${category}${plural}`;
+
+        thRow.append(openState, ruleHeaderText,
+                     document.createElement("th"),
+                     document.createElement("th"));
+        tHead.append(thRow);
+        table.append(tHead, tBody);
+        for(const rule of rules){
+            const ruleRow = document.createElement("tr");
+            const ruleName = document.createElement("td");
+            const ruleText = document.createElement("td");
+            const excerptRow = document.createElement("tr");
+            const excerpt = document.createElement("td");
+            ruleName.classList.add("rule-name");
+            ruleName.textContent = rule.rule;
+            ruleText.classList.add("rule-text");
+            ruleText.textContent = rule.exception;
+            ruleText.setAttribute("colspan", 2);
+            excerpt.classList.add("excerpt");
+            excerpt.textContent = rule.value;
+            excerpt.setAttribute("colspan", 3);
+            excerptRow.append(excerpt);
+            ruleRow.append(ruleName, ruleText);
+            tBody.append(ruleRow);
+            tBody.append(excerptRow);
+        }
+        return table;
+    }
+
+    showHideRules(e){
+        const tbody = e.target.closest("table").querySelector("tbody");
+        if(e.target.classList.contains("open")){
+            e.target.innerHTML = "&#x2795"; // heavy plus
+            e.target.classList.replace("open", "closed");
+            for(const row of tbody.children){
+                row.style.display = "none";
+            }
+        }else if(e.target.classList.contains("closed")){
+            e.target.classList.replace("closed", "open");
+            e.target.innerHTML = "&#x2796"; // heavy minus
+            for(const row of tbody.children){
+                row.style.display = "table-row";
+            }
+        }
     }
 }
 
