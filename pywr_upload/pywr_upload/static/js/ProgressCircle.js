@@ -6,66 +6,116 @@
 const svgNS = "http://www.w3.org/2000/svg"
 
 
-class ProgressCircle{
-    static get default_config(){
+class ProgressCircle extends HTMLElement{
+    static get defaultStyle(){
+        return `
+          :host {
+            display: block;
+            margin: 4px 0px;
+          }
+          svg {
+            vertical-align: middle;
+          }
+          circle {
+            transition: "stroke-dashoffset 0.2s linear";
+            strokeDashoffset: 0;
+          }
+          .fore {
+            stroke: #43DB00;
+            transform-origin: center;
+            transform: rotate(-90deg);
+          }
+          .back {
+            stroke: #E0E0E0;
+          }
+          circle.error {
+            stroke: crimson;
+          }
+          .progress-text {
+            padding: 8px;
+          }
+        `;
+    }
+
+    static get defaultOptions(){
         return {
             size: 24,
-            bgStroke: "#E0E0E0",
-            normalStroke: "#43DB00",
-            errorStroke: "#43DB00",
-            strokeWidth: "0.3em"
+            strokeWidth: "0.3rem"
+        };
+    }
+
+    constructor(){
+        super();
+
+        const options = ProgressCircle.defaultOptions;
+        const shadow = this.attachShadow({mode: "open"});
+
+        const style = document.createElement("style");
+        style.textContent = ProgressCircle.defaultStyle;
+        shadow.append(style);
+
+        const svg = document.createElementNS(svgNS, "svg");
+        const circBack = document.createElementNS(svgNS, "circle");
+        const circFore = document.createElementNS(svgNS, "circle");
+        circBack.classList.add("back");
+        circFore.classList.add("fore");
+        svg.append(circBack, circFore);
+
+        shadow.append(svg);
+        const textSpan = document.createElement("span");
+        textSpan.classList.add("progress-text");
+        textSpan.textContent = "default text";
+        shadow.append(textSpan);
+
+        this.percent = 0;
+        this.options = options;
+        this.shadow = shadow;
+        this.svg = svg;
+        this.textSpan = textSpan;
+        this.circle = circFore;
+        this.circle.addEventListener("transitionend", this.emitComplete.bind(this));
+    }
+
+    emitComplete(){
+        if(this.isComplete){
+            this.dispatchEvent(new Event("progress-complete"));
         }
     }
 
-    constructor(container, options){
-        if(container instanceof HTMLElement){
-            this.container = container;
-        }else if(typeof container === "string"){
-            this.container = document.getElementById(container)
-        }
+    async transitionComplete(e){
+        return new Promise(resolve => {
+            this.addEventListener("progress-complete", function etl(e){
+                this.removeEventListener("progress-complete", etl);
+                resolve();
+            });
+        });
+    }
 
-        if(!options || Object.entries(options).length == 0){
-            options = ProgressCircle.default_config;
-        }
+    connectedCallback(){
+        this.svg.setAttribute("width", this.options.size);
+        this.svg.setAttribute("height", this.options.size);
+        this.svg.setAttribute("viewport", `0 0 ${this.options.size} ${this.options.size}`);
+        this.svg.setAttribute("version", "1.1");
+        this.svg.setAttribute("xmlns", svgNS);
 
-        const svg = document.createElementNS(svgNS, "svg");
-        svg.setAttribute("width", options.size);
-        svg.setAttribute("height", options.size);
-        svg.setAttribute("viewport", `0 0 ${options.size} ${options.size}`);
-        svg.setAttribute("version", "1.1");
-        svg.setAttribute("xmlns", svgNS);
-        svg.style.display = "block";
-        const circBG = document.createElementNS(svgNS, "circle");
-        const circFG = document.createElementNS(svgNS, "circle");
+        const circFore = this.svg.querySelector("circle.fore");
+        const circBack = this.svg.querySelector("circle.back");
 
-        const r = 4*options.size/10;
+        const r = 4*this.options.size/10;
         const dashStride = 2*r*Math.PI;
-        for(const circle of [circFG, circBG]){
-            circle.setAttribute("cx", options.size/2.0);
-            circle.setAttribute("cy", options.size/2.0);
+        for(const circle of [circFore, circBack]){
+            circle.setAttribute("cx", this.options.size/2.0);
+            circle.setAttribute("cy", this.options.size/2.0);
             circle.setAttribute("r", r);
             circle.setAttribute("shape-rendering", "geometricPrecision");
             circle.setAttribute("stroke-dasharray", dashStride);
             circle.setAttribute("fill", "transparent");
-            circle.setAttribute("stroke-width", options.strokeWidth);
+            circle.setAttribute("stroke-width", this.options.strokeWidth);
             circle.style.strokeDashoffset = 0;
             circle.style.transition = "stroke-dashoffset 0.5s linear";
         }
-        circBG.style.stroke = options.bgStroke;
-        circFG.style.strokeDashoffset = dashStride;
-        circFG.style.stroke = options.normalStroke;
-        circFG.style.transform = "rotate(-90deg)";
-        circFG.style.transformOrigin = "center";
-
-        svg.append(circBG);
-        svg.append(circFG);
-
-        this.percent = 0;
-        this.options = options;
-        this.svg = svg;
-        this.circle = circFG;
+        circFore.style.strokeDashoffset = dashStride;
         this.circum = dashStride;
-        this.container.append(svg);
     }
 
     setPercent(percent){
@@ -76,9 +126,18 @@ class ProgressCircle{
         this.percent = percent;
     }
 
+    setText(text){
+        this.textSpan.textContent = text;
+    }
+
+    setErrorState(){
+        this.circle.classList.add("error");
+    }
+
     get isComplete(){
         return this.percent == 100;
     }
 }
 
+customElements.define("progress-circle", ProgressCircle);
 export {ProgressCircle};

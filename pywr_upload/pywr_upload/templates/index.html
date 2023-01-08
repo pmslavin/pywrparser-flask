@@ -3,7 +3,7 @@
 -->
 <!DOCTYPE html>
 <html>
-<head></head>
+<head><link rel="icon" href="data:,"></head>
 <body>
   <style>
     #filename {
@@ -176,26 +176,30 @@ const parserEP = "http://127.0.0.1:5000/parse";
 //const parserEP = "https://httpbin.org/post";
 const finp = document.getElementById("file-input");
 const fname = document.getElementById("filename");
+const stat = document.getElementById("status-container");
 const activeProgress = [];
 
 finp.addEventListener("change", loadFile);
 
 function loadFile(e){
     const reader = new FileReader();
-    const progress = addStatusLine("status-container", "Reading Pywr file...")
+    const progress = document.createElement("progress-circle");
+    progress.setText("Reading Pywr file...");
+    stat.append(progress);
     const fp = finp.files[0];
     fname.innerText = fp.name;
     console.log(fp);
-    //reader.addEventListener("load", processFile);
     reader.addEventListener("load", function(e){
-        progress.container.parentElement.querySelector("span.text").textContent = `${fp.name} (${fp.size} bytes)`;
-        try{
-            const input = JSON.parse(e.target.result);
-            console.log("input", input);
-            parserPost(input);
-        }catch(e){
-            console.error(e);
-        }
+        progress.transitionComplete().then(()=>{
+            progress.setText(`${fp.name} (${fp.size} bytes)`);
+            try{
+                const input = JSON.parse(e.target.result);
+                console.log("input", input);
+                parserPost(input);
+            }catch(e){
+                console.error(e);
+            }
+        });
     });
     reader.addEventListener("progress", function(e){
         const percent = e.loaded/e.total*100.0;
@@ -205,18 +209,10 @@ function loadFile(e){
     reader.readAsText(fp);
 }
 
-function processFile(e){
-    try{
-        const input = JSON.parse(e.target.result);
-        console.log("input", input);
-        parserPost(input);
-    }catch(e){
-        console.error(e);
-    }
-}
-
 function parserPost(input){
-    const progress = addStatusLine("status-container", "Validating Pywr network...")
+    const progress = document.createElement("progress-circle");
+    progress.setText("Validating Pywr network...");
+    stat.append(progress);
     const xhr = new XMLHttpRequest();
     xhr.addEventListener("load", function(){
         console.log(xhr.status);
@@ -230,8 +226,13 @@ function parserPost(input){
         const statusText = `${validState}: ${result.parse_results.errors} error`
                           +`${errorPlural}, ${result.parse_results.warnings} warning`
                           +`${warnPlural}`;
-        progress.container.parentElement.querySelector("span.text").textContent = statusText;
-        const parse = new ParseResult("result-container", filename, filesize, result);
+        progress.transitionComplete().then(()=>{
+            progress.setText(statusText);
+            if(validState === "Invalid"){
+                progress.setErrorState();
+                const parse = new ParseResult("result-container", filename, filesize, result);
+            }
+        });
     });
     xhr.upload.addEventListener("progress", function(e){
         const percent = e.loaded/e.total*100.0;
@@ -264,7 +265,9 @@ function addStatusLine(container, text){
     progSpan.style.display = "inline-block";
     progSpan.style.verticalAlign = "middle";
     progSpan.style.padding = "2px";
-    const progress = new ProgressCircle(progSpan);
+    //const progress = new ProgressCircle(progSpan);
+    const progress = document.createElement("progress-circle");
+    progSpan.append(progress);
     const textSpan = document.createElement("span");
     textSpan.classList.add(`status-line-${lineCount+1}-text`);
     textSpan.classList.add("text");
