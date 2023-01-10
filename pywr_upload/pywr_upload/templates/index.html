@@ -196,7 +196,7 @@ function loadFile(e){
             try{
                 const input = JSON.parse(e.target.result);
                 console.log("input", input);
-                parserPost(input);
+                parseProcess(input);
             }catch(e){
                 progress.setErrorState();
                 progress.setText(`File ${fp.name} is not valid JSON`);
@@ -212,46 +212,71 @@ function loadFile(e){
     reader.readAsText(fp);
 }
 
-function parserPost(input){
+function parseProcess(input){
     const progress = document.createElement("progress-circle");
     progress.setText("Validating Pywr network...");
     stat.append(progress);
-    const xhr = new XMLHttpRequest();
-    xhr.addEventListener("load", function(){
-        console.log(xhr.status);
-        console.log(xhr.response);
-        const filename = finp.files[0].name;
-        const filesize = finp.files[0].size;
-        const result = JSON.parse(xhr.response);
-        const validState = result.parse_results.errors == 0 ? "Valid" : "Invalid";
-        const errorPlural = result.parse_results.errors == 1 ? "" : "s";
-        const warnPlural = result.parse_results.warnings == 1 ? "" : "s";
-        const statusText = `${validState}: ${result.parse_results.errors} error`
-                          +`${errorPlural}, ${result.parse_results.warnings} warning`
+    const result = {};
+    let statusText = null;
+    parserPost(input, progress).then(response => {
+        result.filename = finp.files[0].name;
+        result.filesize = finp.files[0].size;
+        const report = JSON.parse(response);
+        result.validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
+        const errorPlural = report.parse_results.errors == 1 ? "" : "s";
+        const warnPlural = report.parse_results.warnings == 1 ? "" : "s";
+        statusText = `${result.validState}: ${report.parse_results.errors} error`
+                          +`${errorPlural}, ${report.parse_results.warnings} warning`
                           +`${warnPlural}`;
-        progress.transitionComplete().then(()=>{
-            progress.setText(statusText);
-            document.querySelector("div.file-container").append(makeReportLink(result));
-            if(validState === "Invalid"){
-                progress.setErrorState();
-                const parse = new ParseResult("result-container", filename, filesize, result);
+        result.report = report;
+        return progress.transitionComplete();
+    }).then(()=>{
+        progress.setText(statusText);
+        document.querySelector("div.file-container").append(makeReportLink(result.report));
+        if(result.validState === "Invalid"){
+            progress.setErrorState();
+            const parse = new ParseResult("result-container", result);
+        }else if(result.validState === "Valid"){
+            // allow server upload
+        }
+    }).catch(error => {
+        progress.setErrorState();
+        progress.setText(error);
+    });
+}
+
+function parserPost(input, progress){
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const payload = {
+            compression: null,
+            data: input
+        };
+
+        xhr.addEventListener("load", function(){
+            console.log(xhr.status);
+            console.log(xhr.response);
+            if(xhr.status == 200){
+                resolve(xhr.response);
+            }else{
+                reject(Error(xhr.statusText));
             }
         });
-    });
-    xhr.upload.addEventListener("progress", function(e){
-        const percent = e.loaded/e.total*100.0;
-        console.log(`Progress: ${percent.toFixed(2)}`);
-        progress.setPercent(percent);
-    });
-    xhr.open("POST", parserEP);
-    xhr.setRequestHeader("Content-Type", "application/json");
 
-    let payload = {
-        compression: null,
-        data: input
-    };
+        xhr.addEventListener("error", function(){
+            reject(Error("Upload error"));
+        });
 
-    xhr.send(JSON.stringify(payload));
+        xhr.upload.addEventListener("progress", function(e){
+            const percent = e.loaded/e.total*100.0;
+            console.log(`Progress: ${percent.toFixed(2)}`);
+            progress.setPercent(percent);
+        });
+
+        xhr.open("POST", parserEP);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(payload));
+    });
 }
 
 function makeReportLink(report){
