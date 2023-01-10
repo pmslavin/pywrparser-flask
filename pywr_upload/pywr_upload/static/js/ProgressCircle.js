@@ -1,5 +1,5 @@
 /*
- *
+ *  ProgressCircle component
  *
  */
 
@@ -78,16 +78,21 @@ class ProgressCircle extends HTMLElement{
 
     emitComplete(){
         if(this.isComplete){
+            this.completeEmitted = true;
             this.dispatchEvent(new Event("progress-complete"));
         }
     }
 
     async transitionComplete(e){
         return new Promise(resolve => {
-            this.addEventListener("progress-complete", function etl(e){
-                this.removeEventListener("progress-complete", etl);
+            if(this.completeEmitted){
                 resolve();
-            });
+            }else{
+                this.addEventListener("progress-complete", function etl(e){
+                    this.removeEventListener("progress-complete", etl);
+                    resolve();
+                });
+            }
         });
     }
 
@@ -131,6 +136,7 @@ class ProgressCircle extends HTMLElement{
     }
 
     setErrorState(){
+        this.setPercent(100);
         this.circle.classList.add("error");
     }
 

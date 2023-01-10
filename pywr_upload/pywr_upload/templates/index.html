@@ -27,7 +27,8 @@
       font-size: 0.8rem;
     }
     #result-container {
-      width="800px";
+      width: 800px;
+      margin-top: 10px;
     }
     .modal {
       position: fixed;
@@ -197,6 +198,8 @@ function loadFile(e){
                 console.log("input", input);
                 parserPost(input);
             }catch(e){
+                progress.setErrorState();
+                progress.setText(`File ${fp.name} is not valid JSON`);
                 console.error(e);
             }
         });
@@ -228,6 +231,7 @@ function parserPost(input){
                           +`${warnPlural}`;
         progress.transitionComplete().then(()=>{
             progress.setText(statusText);
+            document.querySelector("div.file-container").append(makeReportLink(result));
             if(validState === "Invalid"){
                 progress.setErrorState();
                 const parse = new ParseResult("result-container", filename, filesize, result);
@@ -250,6 +254,21 @@ function parserPost(input){
     xhr.send(JSON.stringify(payload));
 }
 
+function makeReportLink(report){
+    const reportData = new Blob([JSON.stringify(report, null, 2)], {type: "text/json"});
+    const url = URL.createObjectURL(reportData);
+    const link = document.createElement("a");
+    const filename = finp.files[0].name;
+    link.href = url;
+    link.classList.add("report-link");
+    link.style.fontSize = "smaller";
+    link.style.float = "right";
+    link.download = `${filename}_report.json`;
+    link.textContent = "Download parser report";
+
+    return link;
+}
+
 function addStatusLine(container, text){
     if(typeof container === "string")
         container = document.getElementById(container)
@@ -265,7 +284,6 @@ function addStatusLine(container, text){
     progSpan.style.display = "inline-block";
     progSpan.style.verticalAlign = "middle";
     progSpan.style.padding = "2px";
-    //const progress = new ProgressCircle(progSpan);
     const progress = document.createElement("progress-circle");
     progSpan.append(progress);
     const textSpan = document.createElement("span");
