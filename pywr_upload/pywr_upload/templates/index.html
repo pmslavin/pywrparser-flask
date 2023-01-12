@@ -178,75 +178,90 @@ const parserEP = "http://127.0.0.1:5000/parse";
 const finp = document.getElementById("file-input");
 const fname = document.getElementById("filename");
 const stat = document.getElementById("status-container");
-const activeProgress = [];
 
-finp.addEventListener("change", loadFile);
+finp.addEventListener("change", parseProcess);
 
-function loadFile(e){
-    const reader = new FileReader();
-    const progress = document.createElement("progress-circle");
-    progress.setText("Reading Pywr file...");
-    stat.append(progress);
-    const fp = finp.files[0];
-    fname.innerText = fp.name;
-    console.log(fp);
-    reader.addEventListener("load", function(e){
-        progress.transitionComplete().then(()=>{
-            progress.setText(`${fp.name} (${fp.size} bytes)`);
-            try{
-                const input = JSON.parse(e.target.result);
-                console.log("input", input);
-                parseProcess(input);
-            }catch(e){
-                progress.setErrorState();
-                progress.setText(`File ${fp.name} is not valid JSON`);
-                console.error(e);
-            }
-        });
-    });
-    reader.addEventListener("progress", function(e){
-        const percent = e.loaded/e.total*100.0;
-        console.log(`Progress: ${percent.toFixed(2)}`);
-        progress.setPercent(percent);
-    });
-    reader.readAsText(fp);
-}
 
 function parseProcess(input){
-    const progress = document.createElement("progress-circle");
-    progress.setText("Validating Pywr network...");
-    stat.append(progress);
     const result = {};
-    let statusText = null;
-    parserPost(input, progress).then(response => {
-        result.filename = finp.files[0].name;
-        result.filesize = finp.files[0].size;
+    const fileProgress = document.createElement("progress-circle");
+    const parseProgress = document.createElement("progress-circle");
+    const fp = finp.files[0];
+
+    fileProgress.setText("Reading Pywr file...");
+    stat.append(fileProgress);
+    parseProgress.setText("Validating Pywr network...");
+    fname.innerText = fp.name;
+    console.log(fp);
+
+    readFile(fp, fileProgress)
+    .then(result => {return fileProgress.transitionComplete(result);})
+    .then(fileData => {
+        try{
+            const input = JSON.parse(fileData);
+            fileProgress.setText(`${fp.name} (${fp.size} bytes)`);
+            console.log("input", input);
+            return input;
+        }catch(e){
+            fileProgress.setErrorState();
+            fileProgress.setText(`File ${fp.name} is not valid JSON`);
+            throw e;
+        }
+    })
+    .then(input => {
+        stat.append(parseProgress);
+        return {input, parseProgress};
+    })
+    .then(parserPost)
+    .then(response => {return parseProgress.transitionComplete(response);})
+    .then(response => {
         const report = JSON.parse(response);
-        result.validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
+        const validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
         const errorPlural = report.parse_results.errors == 1 ? "" : "s";
         const warnPlural = report.parse_results.warnings == 1 ? "" : "s";
-        statusText = `${result.validState}: ${report.parse_results.errors} error`
+        const statusText = `${validState}: ${report.parse_results.errors} error`
                           +`${errorPlural}, ${report.parse_results.warnings} warning`
                           +`${warnPlural}`;
-        result.report = report;
-        return progress.transitionComplete();
-    }).then(()=>{
-        progress.setText(statusText);
-        document.querySelector("div.file-container").append(makeReportLink(result.report));
-        if(result.validState === "Invalid"){
-            progress.setErrorState();
-            const parse = new ParseResult("result-container", result);
-        }else if(result.validState === "Valid"){
+        parseProgress.setText(statusText);
+        document.querySelector("div.file-container").append(makeReportLink(report));
+        if(validState === "Invalid"){
+            parseProgress.setErrorState();
+            const parse = new ParseResult("result-container", report);
+        }else if(validState === "Valid"){
             // allow server upload
         }
     }).catch(error => {
-        progress.setErrorState();
-        progress.setText(error);
+        parseProgress.setErrorState();
+        parseProgress.setText(error);
+        console.error(error);
     });
 }
 
-function parserPost(input, progress){
+function readFile(fp, progress){
     return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.addEventListener("load", e => {
+            resolve(e.target.result);
+        });
+
+        reader.addEventListener("progress", e => {
+            const percent = e.loaded/e.total*100.0;
+            console.log(`Progress: ${percent.toFixed(2)}`);
+            progress.setPercent(percent);
+        });
+
+        reader.addEventListener("error", e => {
+            reject(e);
+        });
+
+        reader.readAsText(fp);
+    });
+}
+
+function parserPost(parseInfo){
+    return new Promise((resolve, reject) => {
+        const {input, parseProgress: progress} = parseInfo;
         const xhr = new XMLHttpRequest();
         const payload = {
             compression: null,
@@ -292,36 +307,6 @@ function makeReportLink(report){
     link.textContent = "Download parser report";
 
     return link;
-}
-
-function addStatusLine(container, text){
-    if(typeof container === "string")
-        container = document.getElementById(container)
-
-    if(!(container instanceof HTMLElement))
-        return;
-
-    const lineDiv = document.createElement("div");
-    const lineCount = container.querySelectorAll("div.status-line").length;
-    lineDiv.classList.add("status-line");
-    lineDiv.setAttribute("id", `status-line-${lineCount+1}`);
-    const progSpan = document.createElement("span");
-    progSpan.style.display = "inline-block";
-    progSpan.style.verticalAlign = "middle";
-    progSpan.style.padding = "2px";
-    const progress = document.createElement("progress-circle");
-    progSpan.append(progress);
-    const textSpan = document.createElement("span");
-    textSpan.classList.add(`status-line-${lineCount+1}-text`);
-    textSpan.classList.add("text");
-    textSpan.innerText = text;
-    textSpan.style.padding = "8px";
-
-    lineDiv.append(progSpan);
-    lineDiv.append(textSpan);
-    container.append(lineDiv);
-
-    return progress;
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -5,16 +5,13 @@
 
 class ParseResult{
 
-    constructor(container, result, options){
+    constructor(container, report){
         if(container instanceof HTMLElement){
             this.container = container;
         }else if(typeof container === "string"){
             this.container = document.getElementById(container)
         }
-        this.filename = result.filename;
-        this.filesize = result.filesize;
-
-        this.makeHeaderRow(result.report);
+        this.makeHeaderRow(report);
     }
 
     makeHeaderRow(result){

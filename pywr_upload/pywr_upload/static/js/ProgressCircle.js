@@ -83,14 +83,14 @@ class ProgressCircle extends HTMLElement{
         }
     }
 
-    async transitionComplete(e){
+    async transitionComplete(data){
         return new Promise(resolve => {
             if(this.completeEmitted){
-                resolve();
+                resolve(data);
             }else{
-                this.addEventListener("progress-complete", function etl(e){
+                this.addEventListener("progress-complete", function etl(){
                     this.removeEventListener("progress-complete", etl);
-                    resolve();
+                    resolve(data);
                 });
             }
         });
