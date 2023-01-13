@@ -174,19 +174,18 @@
 import {ProgressCircle} from "{{ url_for('pywr_upload.static', filename='js/ProgressCircle.js') }}";
 import {ParseResult} from "{{ url_for('pywr_upload.static', filename='js/ParseResult.js') }}";
 const parserEP = "http://127.0.0.1:5000/parse";
-//const parserEP = "https://httpbin.org/post";
 const finp = document.getElementById("file-input");
 const fname = document.getElementById("filename");
 const stat = document.getElementById("status-container");
 
 finp.addEventListener("change", parseProcess);
 
-
-function parseProcess(input){
-    const result = {};
+async function parseProcess(input){
     const fileProgress = document.createElement("progress-circle");
     const parseProgress = document.createElement("progress-circle");
     const fp = finp.files[0];
+
+    let network, report, validState = null;
 
     fileProgress.setText("Reading Pywr file...");
     stat.append(fileProgress);
@@ -194,47 +193,41 @@ function parseProcess(input){
     fname.innerText = fp.name;
     console.log(fp);
 
-    readFile(fp, fileProgress)
-    .then(result => {return fileProgress.transitionComplete(result);})
-    .then(fileData => {
-        try{
-            const input = JSON.parse(fileData);
-            fileProgress.setText(`${fp.name} (${fp.size} bytes)`);
-            console.log("input", input);
-            return input;
-        }catch(e){
-            fileProgress.setErrorState();
-            fileProgress.setText(`File ${fp.name} is not valid JSON`);
-            throw e;
-        }
-    })
-    .then(input => {
-        stat.append(parseProgress);
-        return {input, parseProgress};
-    })
-    .then(parserPost)
-    .then(response => {return parseProgress.transitionComplete(response);})
-    .then(response => {
-        const report = JSON.parse(response);
-        const validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
+    const result = await readFile(fp, fileProgress);
+    await fileProgress.transitionComplete();
+    try{
+        network = JSON.parse(result);
+        fileProgress.setText(`${fp.name} (${fp.size} bytes)`);
+        console.log("network", network);
+    }catch(e){
+        fileProgress.setErrorState();
+        fileProgress.setText(`File ${fp.name} is not valid JSON`);
+        throw e;
+    }
+    stat.append(parseProgress);
+    try{
+        const response = await parserPost(network, parseProgress);
+        await parseProgress.transitionComplete();
+        report = JSON.parse(response);
+        validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
         const errorPlural = report.parse_results.errors == 1 ? "" : "s";
         const warnPlural = report.parse_results.warnings == 1 ? "" : "s";
         const statusText = `${validState}: ${report.parse_results.errors} error`
                           +`${errorPlural}, ${report.parse_results.warnings} warning`
                           +`${warnPlural}`;
         parseProgress.setText(statusText);
-        document.querySelector("div.file-container").append(makeReportLink(report));
-        if(validState === "Invalid"){
-            parseProgress.setErrorState();
-            const parse = new ParseResult("result-container", report);
-        }else if(validState === "Valid"){
-            // allow server upload
-        }
-    }).catch(error => {
+    }catch(error){
         parseProgress.setErrorState();
         parseProgress.setText(error);
         console.error(error);
-    });
+    }
+    document.querySelector("div.file-container").append(makeReportLink(report));
+    if(validState === "Invalid"){
+        parseProgress.setErrorState();
+        const parse = new ParseResult("result-container", report);
+    }else if(validState === "Valid"){
+        // allow server upload
+    }
 }
 
 function readFile(fp, progress){
@@ -259,13 +252,12 @@ function readFile(fp, progress){
     });
 }
 
-function parserPost(parseInfo){
+function parserPost(network, progress){
     return new Promise((resolve, reject) => {
-        const {input, parseProgress: progress} = parseInfo;
         const xhr = new XMLHttpRequest();
         const payload = {
             compression: null,
-            data: input
+            data: network
         };
 
         xhr.addEventListener("load", function(){
