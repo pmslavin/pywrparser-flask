@@ -1,0 +1,157 @@
+:host {
+  font-size: 0.8rem;
+}
+
+.pvm-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: grayscale(0.7) blur(2px);
+  z-index: -1;
+}
+
+#filename {
+  display: inline-block;
+}
+
+input[type=file] {
+  padding: 8px;
+  width: 8px;
+  opacity: 0;
+}
+
+label {
+  background-color: #7F9CCB;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px ridge black;
+  height: auto;
+  margin: 2px 0;
+  display: inline-block;
+}
+
+#result-container {
+  width: 800px;
+  margin-top: 10px;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.25s ease-in;
+}
+
+.modal-dialog {
+  position: relative;
+  max-width: 800px;
+  height: 60vh;
+  max-height: 80vh;
+  border-radius: 5px;
+  border: grey;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 5px 5px 3px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  background: #FFFFFF;
+  overflow: auto;
+}
+
+#tabs {
+  display: inline-flex;
+}
+
+.tab[active="1"] {
+  background-color: #7F9CCB;
+  color: #000000;
+}
+
+.tab {
+  background-color: #CDCDCD;
+  color: #8A8A8A;
+  padding: 5px 10px;
+  border: 1px ridge black;
+  border-bottom: 0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  height: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.panel[active="1"] {
+  display: block;
+  border: 1px solid black;
+}
+
+.panel {
+  display: none;
+  padding: 16px;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  box-shadow: 5px 5px 3px rgba(0, 0, 0, 0.3);
+}
+
+ul{
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+table{
+  border-spacing: 0px;
+  width: 100%;
+  table-layout: fixed;
+}
+
+thead tr{
+  font-variant: all-small-caps;
+  background-color: #7F9CCB;
+}
+
+th.open-state{
+  width: 10%;
+  float: left;
+}
+
+th.rule-header-text{
+  float: left;
+}
+
+td.rule-name{
+  padding: 2px 8px;
+  font-family: monospace;
+}
+
+td.rule-text{
+  padding: 2px 8px;
+}
+
+tbody tr:nth-child(odd){
+  background-color: wheat;
+  padding: 1px 1px;
+}
+
+tbody tr:nth-child(even){
+  background-color: antiquewhite;
+  padding: 1px 1px;
+}
+
+td.excerpt{
+  font-size: x-small;
+  font-style: italic;
+  padding: 6px 8px;
+  border-bottom: 1px dashed grey;
+}

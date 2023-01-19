@@ -1,6 +1,5 @@
 /*
- *  ProgressCircle component
- *
+ *  ProgressCircle component: <progress-circle>
  */
 
 const svgNS = "http://www.w3.org/2000/svg"
@@ -21,7 +20,7 @@ class ProgressCircle extends HTMLElement{
             strokeDashoffset: 0;
           }
           .fore {
-            stroke: #43DB00;
+            stroke: #7F9CCB;
             transform-origin: center;
             transform: rotate(-90deg);
           }
@@ -30,6 +29,9 @@ class ProgressCircle extends HTMLElement{
           }
           circle.error {
             stroke: crimson;
+          }
+          circle.complete {
+            stroke: #43DB00;
           }
           .progress-text {
             padding: 8px;
@@ -79,6 +81,7 @@ class ProgressCircle extends HTMLElement{
     emitComplete(){
         if(this.isComplete){
             this.completeEmitted = true;
+            this.circle.classList.add("complete");
             this.dispatchEvent(new Event("progress-complete"));
         }
     }
@@ -137,6 +140,7 @@ class ProgressCircle extends HTMLElement{
 
     setErrorState(){
         this.setPercent(100);
+        this.circle.classList.remove("complete");
         this.circle.classList.add("error");
     }
 
