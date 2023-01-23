@@ -63,7 +63,14 @@ class ParseResult{
     }
 
     makeComponentTabs(result){
-        const tabComponents = new Set([...Object.keys(result.errors)], [...Object.keys(result.warnings)]);
+        let errorComponents = [], warnComponents = [];
+        if(Object.hasOwn(result, "errors")){
+            errorComponents = [...Object.keys(result.errors)];
+        }
+        if(Object.hasOwn(result, "warnings")){
+            warnComponents = [...Object.keys(result.warnings)];
+        }
+        const tabComponents = new Set([...errorComponents, ...warnComponents]);
         tabComponents.delete("network");
 
         const tabContainer = document.createElement("div");
@@ -83,13 +90,17 @@ class ParseResult{
             tabText.textContent = `${component[0].toUpperCase()}${component.slice(1)}`;
             tabText.style.padding = "0px 6px 0px 0px";
             tab.append(tabText);
-            const componentErrors = result.errors[component];
-            const componentWarnings = result.warnings[component];
-            if(componentErrors && componentErrors.length > 0){
-                tab.append(this.makeCountTablet(componentErrors.length, "errors"));
+            if(result.errors && result.errors[component]){
+                const componentErrors = result.errors[component];
+                if(componentErrors && componentErrors.length > 0){
+                    tab.append(this.makeCountTablet(componentErrors.length, "errors"));
+                }
             }
-            if(componentWarnings && componentWarnings.length > 0){
-                tab.append(this.makeCountTablet(componentWarnings.length, "warnings"));
+            if(result.warnings && result.warnings[component]){
+                const componentWarnings = result.warnings[component];
+                if(componentWarnings && componentWarnings.length > 0){
+                    tab.append(this.makeCountTablet(componentWarnings.length, "warnings"));
+                }
             }
             tabContainer.append(tab);
             this.tabs.push(tab);
@@ -97,7 +108,6 @@ class ParseResult{
             const panel = this.makePanel(component, result);
             panelContainer.append(panel);
             this.panels.push(panel);
-
         }
         for(const tab of this.tabs){
             tab.addEventListener("click", this.tabClick.bind(this));
@@ -150,12 +160,12 @@ class ParseResult{
         const panel = document.createElement("div");
         panel.setAttribute("id", `${component}-panel`)
         panel.classList.add("panel");
-        const errors = result.errors[component];
-        const warnings = result.warnings[component];
-        if(errors){
+        if(result.errors && result.errors[component]){
+            const errors = result.errors[component];
             panel.append(this.makeRuleTable(errors, "error"));
         }
-        if(warnings){
+        if(result.warnings && result.warnings[component]){
+            const warnings = result.warnings[component];
             panel.append(this.makeRuleTable(warnings, "warning"));
         }
         return panel;

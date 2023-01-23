@@ -58,7 +58,7 @@ class PywrValidationModal extends HTMLElement{
         const parseProgress = document.createElement("progress-circle");
         const fp = this.finp.files[0];
 
-        let network, report, validState = null;
+        let network, report = null;
 
         fileProgress.setText("Reading Pywr file...");
         this.stat.append(fileProgress);
@@ -82,7 +82,7 @@ class PywrValidationModal extends HTMLElement{
             const response = await this.parserPost(network, parseProgress);
             await parseProgress.transitionComplete();
             report = JSON.parse(response);
-            validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
+            const validState = report.parse_results.errors == 0 ? "Valid" : "Invalid";
             const errorPlural = report.parse_results.errors == 1 ? "" : "s";
             const warnPlural = report.parse_results.warnings == 1 ? "" : "s";
             const statusText = `${validState}: ${report.parse_results.errors} error`
@@ -95,11 +95,13 @@ class PywrValidationModal extends HTMLElement{
             console.error(error);
         }
         this.shadow.querySelector("div.file-container").append(this.makeReportLink(report));
-        if(validState === "Invalid"){
+        if(report.parse_results.errors > 0){
             parseProgress.setErrorState();
+        }
+        if(report.parse_results.errors > 0 || report.parse_results.warnings > 0){
             const resultContainer = this.shadow.getElementById("result-container");
             const parse = new ParseResult(resultContainer, report);
-        }else if(validState === "Valid"){
+        }else if(report.parse_results.errors == 0){
             // allow server upload
         }
     }
@@ -174,7 +176,6 @@ class PywrValidationModal extends HTMLElement{
 
         return link;
     }
-
 }
 
 customElements.define("pywr-validation-modal", PywrValidationModal);

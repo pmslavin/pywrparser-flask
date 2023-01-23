@@ -5,6 +5,7 @@ from flask import (
 from pywr_upload import pywr_upload
 
 app = Flask(__name__)
+app.config.from_object("config")
 app.register_blueprint(pywr_upload)
 
 

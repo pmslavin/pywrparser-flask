@@ -36,6 +36,11 @@ label {
   width: 800px;
   margin-top: 10px;
 }
+/*
+
+#panels {
+  overflow-y: scroll;
+}*/
 
 .modal {
   position: fixed;
@@ -56,6 +61,7 @@ label {
 .modal-dialog {
   position: relative;
   max-width: 800px;
+  overflow: hidden !important;
   height: 60vh;
   max-height: 80vh;
   border-radius: 5px;
@@ -101,6 +107,9 @@ label {
   border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
   border-bottom-left-radius: 5px;
+  max-height: 50vh;
+  overflow-y: scroll;
+  margin-bottom: 16px;
   box-shadow: 5px 5px 3px rgba(0, 0, 0, 0.3);
 }
 
