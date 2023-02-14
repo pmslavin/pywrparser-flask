@@ -17,7 +17,6 @@ class PywrValidationModal extends HTMLElement{
           <input type="file" id="file-input">
         </div>
         <div id="status-container"></div>
-        <div class="status-line" id="progress-container"></div>
         <div id="result-container"></div>
       </div>
       `;
@@ -54,6 +53,8 @@ class PywrValidationModal extends HTMLElement{
     }
 
     async parseProcess(){
+        this.resetUi();
+        this.shadow.querySelector("div.file-container label").textContent = "Selected file:";
         const fileProgress = document.createElement("progress-circle");
         const parseProgress = document.createElement("progress-circle");
         const fp = this.finp.files[0];
@@ -175,6 +176,14 @@ class PywrValidationModal extends HTMLElement{
         link.textContent = "Download parser report";
 
         return link;
+    }
+
+    resetUi(){
+        this.shadow.getElementById("status-container").replaceChildren();
+        this.shadow.getElementById("result-container").replaceChildren();
+        const reportLink = this.shadow.querySelector("a.report-link");
+        if(reportLink)
+            reportLink.remove();
     }
 }
 

@@ -27,7 +27,7 @@ def parse():
     config = current_app.config["PYWRPARSER"]
     env = config["env"]
     parser_bin = os.path.join(config["path"], config["bin"])
-    python = "python"
+    python = config["python"]
     args = (parser_bin, *config["flags"])
     proc = subprocess.Popen([python, *args], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     so, se = proc.communicate(input=bio.read())
