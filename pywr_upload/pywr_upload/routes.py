@@ -33,4 +33,5 @@ def parse():
     so, se = proc.communicate(input=bio.read())
     if so and not se:
         return so.decode()
+    print(se.decode())
     return se.decode()

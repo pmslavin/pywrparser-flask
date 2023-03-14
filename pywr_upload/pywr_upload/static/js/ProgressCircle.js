@@ -15,10 +15,6 @@ class ProgressCircle extends HTMLElement{
           svg {
             vertical-align: middle;
           }
-          circle {
-            transition: "stroke-dashoffset 0.2s linear";
-            strokeDashoffset: 0;
-          }
           .fore {
             stroke: #7F9CCB;
             transform-origin: center;
@@ -75,7 +71,6 @@ class ProgressCircle extends HTMLElement{
         this.svg = svg;
         this.textSpan = textSpan;
         this.circle = circFore;
-        this.circle.addEventListener("transitionend", this.emitComplete.bind(this));
     }
 
     emitComplete(){
@@ -111,6 +106,7 @@ class ProgressCircle extends HTMLElement{
 
         const r = 4*this.options.size/10;
         const dashStride = 2*r*Math.PI;
+        this.circum = dashStride;
         for(const circle of [circFore, circBack]){
             circle.setAttribute("cx", this.options.size/2.0);
             circle.setAttribute("cy", this.options.size/2.0);
@@ -119,18 +115,19 @@ class ProgressCircle extends HTMLElement{
             circle.setAttribute("stroke-dasharray", dashStride);
             circle.setAttribute("fill", "transparent");
             circle.setAttribute("stroke-width", this.options.strokeWidth);
-            circle.style.strokeDashoffset = 0;
-            circle.style.transition = "stroke-dashoffset 0.5s linear";
+            circle.setAttribute("stroke-dashoffset", 1.1);
         }
-        circFore.style.strokeDashoffset = dashStride;
-        this.circum = dashStride;
+        circFore.setAttribute("stroke-dashoffset", dashStride);
+        circFore.style.transition = "stroke-dashoffset 1s linear 0s";
+        circFore.addEventListener("transitionend", this.emitComplete.bind(this), {capture: true});
+        void this.offsetHeight;  // Prevent batching renders which can skip transition
     }
 
     setPercent(percent){
         if(percent < 0 || percent > 100)
             return;
 
-        this.circle.style.strokeDashoffset = this.circum*(1.0-percent/100.0);
+        this.circle.setAttribute("stroke-dashoffset", this.circum*(1.0-percent/100.0));
         this.percent = percent;
     }
 

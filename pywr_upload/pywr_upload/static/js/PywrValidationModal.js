@@ -5,7 +5,7 @@
 import {ProgressCircle} from "./ProgressCircle.js";
 import {ParseResult} from "./ParseResult.js";
 
-const parserEP = "http://127.0.0.1:5000/parse";
+const parserEP = "http://46.105.98.40:5000/parse";
 
 class PywrValidationModal extends HTMLElement{
     static get tmplText(){
@@ -72,7 +72,6 @@ class PywrValidationModal extends HTMLElement{
         try{
             network = JSON.parse(result);
             fileProgress.setText(`${fp.name} (${fp.size} bytes)`);
-            console.log("network", network);
         }catch(e){
             fileProgress.setErrorState();
             fileProgress.setText(`File ${fp.name} is not valid JSON`);
@@ -112,13 +111,15 @@ class PywrValidationModal extends HTMLElement{
             const reader = new FileReader();
 
             reader.addEventListener("load", e => {
+                // Manual event required for Windows Firefox
+                reader.dispatchEvent(new CustomEvent("progress", {detail: {loaded: 1, total: 1}}));
                 resolve(e.target.result);
             });
 
             reader.addEventListener("progress", e => {
-                const percent = e.loaded/e.total*100.0;
-                console.log(`Progress: ${percent.toFixed(2)}`);
+                const percent = e.detail ? e.detail.loaded/e.detail.total*100.0 : e.loaded/e.total*100.0;
                 progress.setPercent(percent);
+                console.log(`Progress: ${percent.toFixed(2)}`);
             });
 
             reader.addEventListener("error", e => {
@@ -138,8 +139,6 @@ class PywrValidationModal extends HTMLElement{
             };
 
             xhr.addEventListener("load", function(){
-                console.log(xhr.status);
-                console.log(xhr.response);
                 if(xhr.status == 200){
                     resolve(xhr.response);
                 }else{
